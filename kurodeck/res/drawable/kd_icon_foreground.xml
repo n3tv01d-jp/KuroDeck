@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- hex frame (safe zone is the central 66dp) -->
+    <path android:strokeColor="#3EF3FF" android:strokeWidth="3.2" android:strokeLineJoin="round"
+        android:pathData="M54,23 L80.85,38.5 L80.85,69.5 L54,85 L27.15,69.5 L27.15,38.5 Z" />
+    <!-- deck plates -->
+    <path android:fillColor="#FF3EA5" android:pathData="M40,42 L68,42 L64,47 L40,47 Z" />
+    <path android:fillColor="#FF3EA5" android:pathData="M40,51.5 L68,51.5 L64,56.5 L40,56.5 Z" />
+    <path android:fillColor="#9B7BFF" android:pathData="M40,61 L68,61 L64,66 L40,66 Z" />
+</vector>

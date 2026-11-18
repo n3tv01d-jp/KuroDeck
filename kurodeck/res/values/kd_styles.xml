@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KuroDeck: Hearth typography for icon labels (Rajdhani). These replace the same-named
+     Launcher3 styles, so each repeats the upstream items it needs. -->
+<resources>
+    <style name="BaseIconRoot" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:fontFamily">@font/rajdhani_semibold</item>
+        <item name="android:letterSpacing">0.03</item>
+    </style>
+
+    <style name="BaseIcon.AllApps" parent="BaseIcon">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:stateListAnimator">@animator/all_apps_fastscroll_icon_anim</item>
+        <item name="android:paddingLeft">@dimen/dynamic_grid_cell_padding_x</item>
+        <item name="android:paddingRight">@dimen/dynamic_grid_cell_padding_x</item>
+        <item name="android:textColor">@color/materialColorOnSurface</item>
+        <item name="android:fontFamily">@font/rajdhani_semibold</item>
+    </style>
+</resources>

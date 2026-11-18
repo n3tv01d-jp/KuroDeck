@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""Generate standalone stand-ins for AOSP aconfig `Flags` classes.
+
+In the platform build, Soong generates `<package>.Flags` classes from `.aconfig`
+declarations and backs them with device config. KuroDeck builds with Gradle as a normal
+app, so this script scans the vendored sources for every `Flags` accessor they use and emits
+plain Java classes that return fixed values.
+
+Framework flag packages (android.os, com.android.window.flags, ...) also exist on the
+device's boot classpath, where they are hidden APIs. Classes there would shadow ours, so
+those packages are *relocated* under `kurodeck.flags.` and the vendored sources are rewritten
+to import the relocated copies.
+
+Values default to false. Override them in `flags/flag_values.properties`
+(`<package>.<flag_name>=true`).
+
+Usage: tools/gen_flags.py            # regenerate flags/src and rewrite relocated imports
+"""
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCAN_DIRS = ["launcher3", "third_party", "kurodeck", "stubs"]
+OUT = os.path.join(ROOT, "flags", "src", "main", "java")
+VALUES = os.path.join(ROOT, "flags", "flag_values.properties")
+
+# Packages that collide with hidden framework classes on-device -> relocate.
+RELOCATE = [
+    "android.os",
+    "android.multiuser",
+    "android.appwidget.flags",
+    "android.security",
+    "com.android.window.flags",
+    "com.android.providers.media.flags",
+]
+PREFIX = "kurodeck.flags."
+
+
+def camel(snake):
+    parts = snake.split("_")
+    return parts[0] + "".join(p[:1].upper() + p[1:] for p in parts[1:])
+
+
+def snake(camel_name):
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", camel_name).lower()
+
+
+def sources():
+    for d in SCAN_DIRS:
+        base = os.path.join(ROOT, d)
+        for dp, dn, fn in os.walk(base):
+            dn[:] = [x for x in dn if x not in ("build", ".gradle")]
+            for f in fn:
+                if f.endswith((".java", ".kt")):
+                    yield os.path.join(dp, f)
+
+
+PKG_RE = r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*"
+
+
+def relocate_sources():
+    """Rewrite references to framework Flags classes so they hit our relocated copies."""
+    pat = re.compile(r"(?<![\w.])(" + "|".join(re.escape(p) for p in RELOCATE) + r")\.Flags\b")
+    changed = 0
+    for path in sources():
+        if path.startswith(OUT):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        new = pat.sub(lambda m: PREFIX + m.group(1) + ".Flags", text)
+        if new != text:
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(new)
+            changed += 1
+    return changed
+
+
+def scan():
+    used = {}  # pkg -> set(camelName)
+    file_pkg_re = re.compile(r"^package\s+(" + PKG_RE + r")", re.M)
+    imp_re = re.compile(r"^import\s+(" + PKG_RE + r")\.Flags\s*;?\s*$", re.M)
+    static_re = re.compile(r"^import\s+(?:static\s+)?(" + PKG_RE + r")\.Flags\.(\w+)", re.M)
+    fq_re = re.compile(r"(?<![\w.])(" + PKG_RE + r")\.Flags\.(\w+)")
+    for path in sources():
+        if path.startswith(OUT):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+        if "Flags" not in text:
+            continue
+        own = file_pkg_re.search(text)
+        imported = imp_re.findall(text)
+        for pkg, name in static_re.findall(text) + fq_re.findall(text):
+            used.setdefault(pkg, set()).add(name)
+        candidates = list(imported)
+        # Unqualified `Flags` in a package that owns a Flags class (e.g. com.android.launcher3).
+        if own and not imported and re.search(r"(?<![\w.])Flags\.", text):
+            candidates.append(own.group(1))
+        for pkg in candidates:
+            for name in re.findall(r"(?<![\w.])Flags\.(\w+)", text):
+                used.setdefault(pkg, set()).add(name)
+    # Drop packages that are not aconfig flag holders.
+    for bogus in ["com.android.launcher3.config", "android.content.pm", "android.view"]:
+        used.pop(bogus, None)
+    return used
+
+
+def load_values():
+    vals = {}
+    if os.path.exists(VALUES):
+        for line in open(VALUES, encoding="utf-8"):
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                vals[k.strip()] = v.strip().lower() == "true"
+    return vals
+
+
+def emit(used, vals):
+    for pkg, names in sorted(used.items()):
+        flags = set()
+        for n in names:
+            if n.startswith("FLAG_"):
+                flags.add(n[5:].lower())
+            elif re.match(r"^[a-z]\w*$", n):
+                flags.add(snake(n))
+        if not flags:
+            continue
+        orig_pkg = pkg[len(PREFIX):] if pkg.startswith(PREFIX) else pkg
+        d = os.path.join(OUT, *pkg.split("."))
+        os.makedirs(d, exist_ok=True)
+        lines = [
+            "// GENERATED by tools/gen_flags.py - do not edit. Values: flags/flag_values.properties",
+            f"package {pkg};",
+            "",
+            f"/** Standalone stand-in for the aconfig flags of {orig_pkg}. */",
+            "public final class Flags {",
+            "    private Flags() {}",
+        ]
+        for f in sorted(flags):
+            lines.append(f'    public static final String FLAG_{f.upper()} = "{orig_pkg}.{f}";')
+        for f in sorted(flags):
+            v = "true" if vals.get(f"{orig_pkg}.{f}", False) else "false"
+            lines.append(f"    public static boolean {camel(f)}() {{ return {v}; }}")
+        lines.append("}")
+        with open(os.path.join(d, "Flags.java"), "w", encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n")
+        print(f"  {pkg}: {len(flags)} flags")
+
+
+def main():
+    n = relocate_sources()
+    print(f"relocated framework flag references in {n} files")
+    if os.path.isdir(OUT):
+        import shutil
+        shutil.rmtree(OUT)
+    emit(scan(), load_values())
+
+
+if __name__ == "__main__":
+    sys.exit(main())

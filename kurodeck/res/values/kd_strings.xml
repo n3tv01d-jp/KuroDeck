@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KuroDeck strings. Overrides of Launcher3 strings keep their original names. -->
+<resources>
+    <string name="app_name" translatable="false">KuroDeck</string>
+    <string name="kurodeck_command_deck">Command deck</string>
+    <string name="kurodeck_hexagon_shape_title">Hexagon</string>
+    <string name="all_apps_search_bar_hint">SEARCH // 検索</string>
+    <string name="kurodeck_panel_listener">KuroDeck HUD panel</string>
+</resources>

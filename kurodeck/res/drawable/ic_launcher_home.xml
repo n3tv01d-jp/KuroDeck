@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KuroDeck app icon: a neon hex frame around a stacked "deck" glyph. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/kd_icon_background" />
+    <foreground android:drawable="@drawable/kd_icon_foreground" />
+    <monochrome android:drawable="@drawable/kd_icon_foreground" />
+</adaptive-icon>

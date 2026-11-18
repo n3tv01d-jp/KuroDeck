@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Menu / widget icon: hex with a reactor dot. Tinted by the popup. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24"
+    android:tint="?android:attr/textColorPrimary">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineJoin="round"
+        android:pathData="M12,2.5 L20.2,7.25 L20.2,16.75 L12,21.5 L3.8,16.75 L3.8,7.25 Z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M12,8.5a3.5,3.5 0,1 1,0 7a3.5,3.5 0,1 1,0 -7z" />
+</vector>

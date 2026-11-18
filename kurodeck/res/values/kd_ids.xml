@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- KuroDeck: ids for views created in code. -->
+<resources>
+    <item type="id" name="kurodeck_app_drawer" />
+</resources>

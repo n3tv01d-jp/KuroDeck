@@ -1,0 +1,12 @@
+KuroDeck
+Copyright 2026 KuroDeck contributors
+
+This product includes software from the Android Open Source Project and GrapheneOS
+(packages/apps/Launcher3, frameworks/libs/systemui, frameworks/base/packages/SystemUI/plugin_core),
+Copyright The Android Open Source Project, licensed under the Apache License, Version 2.0.
+
+Fonts: Orbitron (The Orbitron Project Authors), Rajdhani (Indian Type Foundry),
+Share Tech Mono (Carrois Type Design), licensed under the SIL Open Font License 1.1.
+See third_party/fonts/.
+
+Design language after HEARTH.
