@@ -7,3 +7,24 @@ build/
 .idea/
 keystore.properties
 *.jks
+
+# Build outputs / Android Studio
+*.apk
+*.aab
+captures/
+.cxx/
+.externalNativeBuild/
+*.hprof
+
+# Python (tools/*.py)
+__pycache__/
+*.pyc
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.keystore
+.env
