@@ -484,6 +484,7 @@ public class Launcher extends StatefulActivity<LauncherState>
         setContentView(getRootView());
         // KuroDeck: Hearth-style boot sequence on the first launch of this process.
         com.kurodeck.hud.BootSequenceView.maybeShow(this);
+        com.kurodeck.hud.HearthLink.attach(this);
         getRootView().dispatchInsets();
 
         final SettingsCache settingsCache = SettingsCache.INSTANCE.get(this);

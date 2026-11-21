@@ -28,3 +28,20 @@ Thumbs.db
 # Secrets
 *.keystore
 .env
+*.p12
+*.pem
+*.key
+.env.*
+!.env.example
+secrets.properties
+signing.properties
+google-services.json
+*.secret
+
+# Logs / temp / misc
+*.log
+*.tmp
+*.swp
+*~
+.claude/settings.local.json
+CLAUDE.local.md

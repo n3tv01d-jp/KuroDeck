@@ -21,6 +21,8 @@ abstract class HudPanelView(context: Context) : View(context) {
     protected var pal: HudPalette = HudTheme.current(context)
     protected var sample: TelemetrySample? = Telemetry.latest
     private var subscribed = false
+    private var hubSubscribed = false
+    private val onHubUpdate: () -> Unit = { onHub() }
 
     /** 0→1 entrance progress (`@keyframes panelIn`: fade, rise and brighten). */
     protected var enter = 0f
@@ -32,6 +34,11 @@ abstract class HudPanelView(context: Context) : View(context) {
     protected open val wantsTelemetry = true
 
     protected open fun onTelemetry(s: TelemetrySample) = invalidate()
+
+    /** Whether this panel shows HEARTH hub data (polled only while the panel is on screen). */
+    protected open val wantsHub = false
+
+    protected open fun onHub() = invalidate()
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -48,17 +55,26 @@ abstract class HudPanelView(context: Context) : View(context) {
     override fun onDetachedFromWindow() {
         HudTheme.removeListener(onTheme)
         setSubscribed(false)
+        setHub(false)
         super.onDetachedFromWindow()
     }
 
     override fun onVisibilityAggregated(isVisible: Boolean) {
         super.onVisibilityAggregated(isVisible)
         setSubscribed(isVisible && wantsTelemetry)
+        setHub(isVisible && wantsHub)
     }
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
         setSubscribed(visibility == VISIBLE && isShown && wantsTelemetry)
+        setHub(visibility == VISIBLE && isShown && wantsHub)
+    }
+
+    private fun setHub(on: Boolean) {
+        if (on == hubSubscribed) return
+        hubSubscribed = on
+        if (on) HearthLink.subscribe(context, onHubUpdate) else HearthLink.unsubscribe(onHubUpdate)
     }
 
     private fun setSubscribed(on: Boolean) {

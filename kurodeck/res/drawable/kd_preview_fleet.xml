@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker preview for 04 FLEET 艦隊: three machine rows with link lights. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="110dp"
+    android:viewportWidth="320" android:viewportHeight="110">
+    <path android:fillColor="#E6090D1C" android:strokeColor="#8C3EF3FF" android:strokeWidth="1.5"
+        android:pathData="M2,2 L304,2 L318,16 L318,108 L16,108 L2,94 Z" />
+    <path android:fillColor="#3EF3FF" android:pathData="M12,10 L36,10 L32,22 L12,22 Z" />
+    <path android:fillColor="#D8F6FF" android:pathData="M44,13 L96,13 L96,19 L44,19 Z" />
+    <path android:fillColor="#5DFF9E" android:pathData="M14,40 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#5DFF9E" android:pathData="M14,64 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#FF3B5C" android:pathData="M14,88 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#D8F6FF" android:pathData="M26,36 L96,36 L96,44 L26,44 Z" />
+    <path android:fillColor="#D8F6FF" android:pathData="M26,60 L84,60 L84,68 L26,68 Z" />
+    <path android:fillColor="#7D93B5" android:pathData="M26,84 L90,84 L90,92 L26,92 Z" />
+    <path android:fillColor="#7D93B5" android:pathData="M180,37 L306,37 L306,43 L180,43 Z" />
+    <path android:fillColor="#7D93B5" android:pathData="M180,61 L306,61 L306,67 L180,67 Z" />
+    <path android:fillColor="#FF3B5C" android:pathData="M230,85 L306,85 L306,91 L230,91 Z" />
+</vector>

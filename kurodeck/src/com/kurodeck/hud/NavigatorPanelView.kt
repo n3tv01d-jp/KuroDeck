@@ -31,6 +31,8 @@ class NavigatorPanelView(context: Context) : HudPanelView(context) {
     private var typedAt = 0L
     private var layout: StaticLayout? = null
     private var layoutKey = ""
+    override val wantsHub = true
+    override fun onHub() = refresh()
 
     init {
         isClickable = true

@@ -12,6 +12,8 @@ import androidx.annotation.ColorInt
 import androidx.annotation.StyleRes
 import androidx.core.content.res.ResourcesCompat
 import com.android.launcher3.R
+import com.kurodeck.hud.HearthLink
+import org.json.JSONObject
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -69,8 +71,8 @@ object HudTheme {
 
     private fun c(hex: String) = Color.parseColor(hex)
 
-    /** Palettes in Hearth's theme menu order. */
-    val palettes: List<HudPalette> = listOf(
+    /** The built-in palettes, in Hearth's theme menu order. */
+    val builtin: List<HudPalette> = listOf(
         HudPalette("hearth", "HEARTH", "炉心", c("#3EF3FF"), c("#FF3EA5"), c("#9B7BFF"),
             c("#0E142A"), c("#05060D"), c("#0A0D1C"), c("#E6090D1C"), c("#D8F6FF"),
             c("#7D93B5"), c("#45567A"), R.style.KuroDeck_Hearth),
@@ -106,16 +108,60 @@ object HudTheme {
     fun prefs(context: Context): SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun current(context: Context): HudPalette {
-        cached?.let { return it }
-        val id = prefs(context).getString(KEY_THEME, palettes[0].id)
-        return (palettes.firstOrNull { it.id == id } ?: palettes[0]).also { cached = it }
+    /**
+     * Palettes to offer: the built-ins, or, while following a HEARTH hub, the hub's versions of
+     * them plus its extra palettes (those use the HEARTH launcher theme for Launcher3's surfaces).
+     */
+    fun palettes(context: Context): List<HudPalette> {
+        val pack = HearthLink.pack
+        if (pack == null || !HearthLink.follows(context)) return builtin
+        val out = builtin.map { b ->
+            pack.palettes.firstOrNull { it.optString("id") == b.id }?.let { fromHub(it, b) } ?: b
+        }.toMutableList()
+        for (o in pack.palettes) {
+            if (out.none { it.id == o.optString("id") }) fromHub(o, null)?.let(out::add)
+        }
+        return out
     }
 
-    fun set(context: Context, palette: HudPalette) {
+    private fun fromHub(o: JSONObject, base: HudPalette?): HudPalette? = try {
+        fun col(k: String, fallback: Int?): Int {
+            val v = o.optString(k)
+            return if (Regex("^#[0-9a-fA-F]{6}$").matches(v)) Color.parseColor(v)
+                else fallback ?: throw IllegalArgumentException("missing $k")
+        }
+        val panel = col("panel", base?.panel)
+        HudPalette(o.getString("id"), o.optString("name", base?.name ?: o.getString("id").uppercase()).take(16),
+            o.optString("jp", base?.jp ?: "").take(16), col("a1", base?.a1), col("a2", base?.a2),
+            col("a3", base?.a3), col("surface", base?.surface), col("bg", base?.bg), col("bg2", base?.bg2),
+            (panel and 0x00FFFFFF) or (0xE6 shl 24), col("text", base?.text), col("dim", base?.dim),
+            col("faint", base?.faint), base?.launcherTheme ?: R.style.KuroDeck_Hearth)
+    } catch (e: Exception) {
+        null
+    }
+
+    fun current(context: Context): HudPalette {
+        cached?.let { return it }
+        val list = palettes(context)
+        val hub = HearthLink.pack?.theme?.takeIf { HearthLink.follows(context) }
+        val id = hub?.takeIf { h -> list.any { it.id == h } } ?: prefs(context).getString(KEY_THEME, builtin[0].id)
+        return (list.firstOrNull { it.id == id } ?: list[0]).also { cached = it }
+    }
+
+    /** [push]: the user picked it, so it becomes the fleet theme on a linked hub as well. */
+    fun set(context: Context, palette: HudPalette, push: Boolean = false) {
         prefs(context).edit().putString(KEY_THEME, palette.id).apply()
         cached = palette
         listeners.forEach { it(palette) }
+        if (push) HearthLink.pushTheme(context, palette.id)
+    }
+
+    /** The hub's look changed (or the hub was unlinked): recompute the palette and repaint. */
+    fun hubChanged(context: Context) {
+        cached = null
+        val p = current(context)
+        if (builtin.any { it.id == p.id }) prefs(context).edit().putString(KEY_THEME, p.id).apply()
+        listeners.forEach { it(p) }
     }
 
     fun addListener(l: (HudPalette) -> Unit) = listeners.add(l)

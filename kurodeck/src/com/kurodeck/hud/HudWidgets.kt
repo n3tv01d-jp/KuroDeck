@@ -75,6 +75,11 @@ object NetworkWidget : HudWidget("kurodeck-network", "NETWORK // 通信", 1, 3, 
     override fun createPanel(context: Context) = NetPanelView(context)
 }
 
+object FleetWidget : HudWidget("kurodeck-fleet", "FLEET // 艦隊", 2, 3, 1,
+    com.android.launcher3.R.drawable.kd_preview_fleet) {
+    override fun createPanel(context: Context) = FleetPanelView(context)
+}
+
 /** Dagger bindings that add the HUD widgets to Launcher3's custom-widget set. */
 @Module
 object KuroDeckWidgetModule {
@@ -82,5 +87,5 @@ object KuroDeckWidgetModule {
     @ElementsIntoSet
     @Named(NAMED_CUSTOM_WIDGETS)
     @JvmStatic
-    fun hudWidgets(): Set<CustomWidget> = setOf(CoreWidget, NavigatorWidget, NetworkWidget)
+    fun hudWidgets(): Set<CustomWidget> = setOf(CoreWidget, NavigatorWidget, NetworkWidget, FleetWidget)
 }

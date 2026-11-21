@@ -116,13 +116,50 @@ object Kagari {
     }
 
     private fun greeting(): Triple<String, String, String> {
-        val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val cal = Calendar.getInstance()
+        val h = cal.get(Calendar.HOUR_OF_DAY)
+        // KAGARI's shared lines from a linked HEARTH hub, when there are any
+        HearthLink.pack?.greetings?.takeIf { it.isNotEmpty() }?.let { g ->
+            val line = (g.firstOrNull { h < it.first } ?: g.last()).second
+            val hm = String.format(Locale.ROOT, "%02d:%02d", h, cal.get(Calendar.MINUTE))
+            return Triple(line.kao, line.en.replace("{time}", hm).replace("{where}", "deck"), line.jp)
+        }
         return when {
             h < 5 -> Triple("(￣o￣) zzz", "Still up this late? I'll keep the hearth warm.", "夜更かしですね…")
             h < 11 -> Triple("(｡•̀ᴗ-)✧", "Good morning! Systems warmed up and ready.", "おはようございます！")
             h < 18 -> Triple("(・ω・)ノ", "Good afternoon! Everything is humming along nicely.", "こんにちは！")
             else -> Triple("(´｡• ᵕ •｡`)", "Good evening. Quiet night on the deck so far.", "こんばんは。")
         }
+    }
+
+    private const val HUB_ALERT_MS = 120_000L
+    private const val HUB_REC_MS = 45_000L
+
+    /** Fleet emergencies from the linked hub: machines gone silent, fresh critical events. */
+    private fun hubUrgent(): NavLine? {
+        val st = HearthLink.status ?: return null
+        if (HearthLink.error != null) return null
+        val lost = st.fleet.filter { !it.online }
+        if (lost.isNotEmpty()) return NavLine("hub-lost-" + lost.joinToString(",") { it.id }, "crit",
+            "NODE SILENT", "(⊙_⊙;)", "${lost.joinToString(" & ") { it.name }} went silent at home! " +
+                "I can't hear ${if (lost.size > 1) "them" else "it"} on the LAN anymore…", "ノード応答なし！")
+        val crit = st.events.firstOrNull { !it.rec && it.lvl == "crit" &&
+            System.currentTimeMillis() - it.t < HUB_ALERT_MS } ?: return null
+        return NavLine("hub-ev-${crit.id}", "crit", "FLEET ALERT", "(×﹏×)",
+            "${crit.node}: ${crit.msg}!", "艦隊に異常発生！")
+    }
+
+    /** Fleet warnings and recoveries from the linked hub. */
+    private fun hubNotice(): NavLine? {
+        val st = HearthLink.status ?: return null
+        val now = System.currentTimeMillis()
+        val rec = st.events.firstOrNull { it.rec && now - it.t < HUB_REC_MS }
+        if (rec != null) return NavLine("hub-rec-${rec.id}", "happy", "RECOVERED", "٩(◕‿◕｡)۶",
+            "Yay! ${rec.node}: ${rec.msg}. Everything's okay at home again~", "復旧しました！")
+        val warn = st.events.firstOrNull { !it.rec && it.lvl == "warn" && now - it.t < HUB_ALERT_MS }
+            ?: return null
+        return NavLine("hub-ev-${warn.id}", "warn", "FLEET WARNING", "(°ロ°;)",
+            "Heads up from home: ${warn.node}: ${warn.msg}.", "艦隊から警告。")
     }
 
     /** Picks the line to show for [s], following Hearth's priority order. */
@@ -137,7 +174,9 @@ object Kagari {
                 "POWER CRITICAL", "(×﹏×)",
                 "Only ${s.batteryPct}% left! Plug me in before the hearth goes dark!", "電力残量わずか！")
         }
+        hubUrgent()?.let { return it }
         event?.let { if (now - eventAt < EVENT_MS) return it else event = null }
+        hubNotice()?.let { return it }
         if (s != null) {
             if (s.charging && s.batteryPct >= 100) return NavLine("full", "happy", "FULL CHARGE",
                 "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧", "Core at 100%! You can unplug whenever you like.", "充電完了！")
@@ -176,6 +215,13 @@ object Kagari {
                 add(Triple("(｀・ω・´)📋", "Since boot we've moved ▼${Telemetry.bytes(s.rxTotal)} " +
                     "▲${Telemetry.bytes(s.txTotal)}.", "通信量の報告です。"))
             }
+            HearthLink.status?.let { st ->
+                val on = st.fleet.count { it.online }
+                if (st.fleet.isNotEmpty() && on == st.fleet.size) add(Triple("(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧",
+                    "All ${st.fleet.size} machine${if (st.fleet.size == 1) "" else "s"} in the fleet are green. " +
+                        "The hearth burns steady at home.", "艦隊、全機正常。"))
+            }
+            HearthLink.pack?.idle?.forEach { add(Triple(it.kao, it.en, it.jp)) }
             if (unlocksToday > 0) add(Triple("(˘ω˘)",
                 "You've checked in $unlocksToday time${if (unlocksToday == 1) "" else "s"} today.",
                 "本日の記録。"))

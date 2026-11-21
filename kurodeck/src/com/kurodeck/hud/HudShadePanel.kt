@@ -95,6 +95,8 @@ class HudShadePanel private constructor(private val launcher: Launcher) :
 
     private val onNotifications: () -> Unit = { post(::rebuildNotifications) }
     private val onSample: (TelemetrySample) -> Unit = { updateReadout(it) }
+    private val fleetText = TextView(ctx)
+    private val onHub: () -> Unit = { post(::refreshFleet) }
     private val torch = Torch(ctx) { post { tiles.forEach { it.refresh() } } }
 
     init {
@@ -124,6 +126,25 @@ class HudShadePanel private constructor(private val launcher: Launcher) :
         specs.chunked(4).forEach { rowSpecs ->
             val row = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
             rowSpecs.forEachIndexed { i, spec ->
+                val t = TileView(ctx, pal, spec)
+                tiles += t
+                row.addView(t, LinearLayout.LayoutParams(0, ctx.dp(60f).toInt(), 1f).apply {
+                    if (i > 0) marginStart = ctx.dp(6f).toInt()
+                })
+            }
+            sheet.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
+                LayoutParams.WRAP_CONTENT).apply { topMargin = ctx.dp(6f).toInt() })
+        }
+
+        if (HearthLink.url(ctx) != null) {
+            sheet.addView(section("FLEET // 艦隊"))
+            fleetText.typeface = HudTheme.mono(ctx)
+            fleetText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            fleetText.setTextColor(pal.dim)
+            fleetText.setLineSpacing(0f, 1.15f)
+            sheet.addView(fleetText, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+            val row = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
+            fleetSpecs().forEachIndexed { i, spec ->
                 val t = TileView(ctx, pal, spec)
                 tiles += t
                 row.addView(t, LinearLayout.LayoutParams(0, ctx.dp(60f).toInt(), 1f).apply {
@@ -393,6 +414,7 @@ class HudShadePanel private constructor(private val launcher: Launcher) :
         super.onAttachedToWindow()
         HudNotificationService.addListener(onNotifications)
         Telemetry.subscribe(ctx, onSample)
+        HearthLink.subscribe(ctx, onHub)
         torch.start()
         refreshAll()
     }
@@ -400,6 +422,7 @@ class HudShadePanel private constructor(private val launcher: Launcher) :
     override fun onDetachedFromWindow() {
         HudNotificationService.removeListener(onNotifications)
         Telemetry.unsubscribe(onSample)
+        HearthLink.unsubscribe(onHub)
         torch.stop()
         animator?.cancel()
         super.onDetachedFromWindow()
@@ -416,7 +439,46 @@ class HudShadePanel private constructor(private val launcher: Launcher) :
         refreshBrightness()
         rebuildNotifications()
         Telemetry.latest?.let(::updateReadout)
+        refreshFleet()
     }
+
+    // ── fleet (HEARTH hub) ────────────────────────────────────────────────────────────────
+
+    private fun refreshFleet() {
+        if (HearthLink.url(ctx) == null) return
+        val st = HearthLink.status
+        val err = HearthLink.error
+        val sb = StringBuilder()
+        if (st == null) {
+            sb.append(if (err != null) "HUB UNREACHABLE // $err" else "LINKING…")
+        } else {
+            val on = st.fleet.count { it.online }
+            sb.append("HUB ${st.hub.uppercase()} · $on/${st.fleet.size} ONLINE")
+            if (st.maint > 0) sb.append(" · MAINT")
+            if (err != null) sb.append(" · STALE")
+            st.fleet.filter { !it.online }.forEach { sb.append("\n✖ ${it.name.uppercase()} SIGNAL LOST") }
+            st.events.filter { !it.rec && (it.lvl == "crit" || it.lvl == "warn") }.take(3).forEach {
+                sb.append("\n${if (it.lvl == "crit") "▲" else "△"} ${HearthLink.ago(it.t)} ${it.node}: ${it.msg}")
+            }
+        }
+        fleetText.text = sb.toString()
+        tiles.forEach { it.refresh() }
+    }
+
+    private fun fleetSpecs(): List<TileSpec> = listOf(
+        TileSpec("HEARTH", "炉心", {
+            val st = HearthLink.status
+            if (st == null) "--" to false
+            else "${st.fleet.count { it.online }}/${st.fleet.size}" to
+                st.fleet.all { it.online && it.alerts == 0 }
+        }, { close(false); HearthLink.open(ctx, "hearth.html") },
+            { close(false); HearthLink.open(ctx, "arsenal.html") }),
+        TileSpec("GATE", "転送門", { "OPEN" to false }, { close(false); HearthLink.open(ctx, "gate.html") }),
+        TileSpec("RYUCORE", "竜核", { (if (HearthLink.ryucore != null) "OPEN" else "N/A") to false }, {
+            if (HearthLink.ryucore != null) { close(false); HearthLink.open(ctx, "ryucore") }
+            else toast("Link RyuCore on HEARTH's start page first")
+        }),
+    )
 
     private fun updateReadout(s: TelemetrySample) {
         val bolt = if (s.charging) " ⚡" else ""

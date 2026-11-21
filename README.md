@@ -17,10 +17,12 @@ stock launcher as `app.kurodeck.launcher`.
 | Boot sequence | Hearth's start-up log and progress bar, once per launcher process. Tap to skip. It is skipped when system animations are off |
 | **03 APPS アプリ** drawer | The app drawer is paged: swipe left and right through fixed grids of apps in A–Z order, like One UI. Each page is a HUD panel with a header (`P01/05 · 087`), and a segmented indicator sits underneath. Search, the work tab and dragging apps out work as before. Toggle *Paged drawer* in the Command deck to go back to the vertical list |
 | **06 CONSOLE 操作盤** panel | Swipe down on the home screen for KuroDeck's own pull-down: clock and status, 12 quick tiles, a brightness slider and your notifications (tap to open, swipe sideways to dismiss, CLEAR ALL). Swipes that start on the status bar still open the system shade. Android only lets apps toggle the torch, Do Not Disturb, rotation and brightness directly; Wi-Fi, internet, volume and NFC open the system's small settings panels, and the rest open Settings. Needs *Notification access* (and optionally *Modify system settings* and *Do Not Disturb access*), each asked for the first time it's needed. Toggle *HUD panel* in the Command deck |
+| **04 FLEET 艦隊** widget | Your [HEARTH](../hearth) fleet on the home screen: one row per machine with its link light, CPU, memory, hottest sensor and containers, and the newest hub warning. Tap to open the HEARTH dashboard. Needs a linked hub |
+| **HEARTH LINK 炉心連結** | Command deck → *HEARTH LINK*: enter your hub's address (`http://192.168.1.10:8088`). KuroDeck then follows the hub's fleet theme and palettes (picking one here changes it fleet-wide; toggle *Fleet theme* to opt out), KAGARI uses the hub's shared lines and reports its alerts (silent machines, critical events, warnings, recoveries), and the CONSOLE gets a **FLEET** section with the latest alerts and HEARTH / GATE / RYUCORE tiles. The hub is only polled while one of these is on screen. Unlink to go back to fully offline |
 | HUD popups | The home-screen long-press menu (with an `[00] OPTIONS 操作` header) and app shortcut popups use the widgets' chamfered panels, flat rows with a glowing press bar, and Rajdhani caps |
 | Launcher theming | Each palette is a full Launcher3 activity theme covering folders, popups, all-apps, page dots and drop targets. Material tokens are always dark. Icons default to a **hexagon** shape, and labels use Rajdhani |
 
-CORE and NAVIGATOR are placed on the first screen of a fresh layout. All three panels are
+CORE and NAVIGATOR are placed on the first screen of a fresh layout. All four panels are
 ordinary resizable widgets under **KuroDeck** in the widget picker.
 
 ## Build
